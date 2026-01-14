@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 Multi-Market Stock Price Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            padding: 20px;
+            animation: gradientShift 15s ease infinite;
+            background-size: 400% 400%;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 247, 250, 0.98) 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 40px rgba(102, 126, 234, 0.2);
+            padding: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            color: white;
+            margin-bottom: 15px;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1.2em;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            color: #2d3748;
+            font-weight: 700;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        input::placeholder {
+            color: #a0aec0;
+        }
+
+        button {
+            align-self: flex-end;
+            padding: 14px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.05em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 5px solid #c92a2a;
+            display: none;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+            font-weight: 600;
+        }
+
+        .error.show {
+            display: block;
+            animation: slideDown 0.4s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .prediction-section {
+            display: none;
+            margin-bottom: 40px;
+        }
+
+        .prediction-section.show {
+            display: block;
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .prediction-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.25);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+            pointer-events: none;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .card.positive {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+            box-shadow: 0 10px 30px rgba(0, 153, 255, 0.25);
+        }
+
+        .card.positive:hover {
+            box-shadow: 0 20px 40px rgba(0, 153, 255, 0.4);
+        }
+
+        .card.negative {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.25);
+        }
+
+        .card.negative:hover {
+            box-shadow: 0 20px 40px rgba(255, 107, 107, 0.4);
+        }
+
+        .card h3 {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.85em;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1.5px;
+        }
+
+        .card .value {
+            font-size: 2.2em;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .card .change {
+            font-size: 1.15em;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .change.positive {
+            color: #00ff88;
+        }
+
+        .change.negative {
+            color: #ffff00;
+        }
+
+        .chart-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .chart-section h3 {
+            margin-bottom: 25px;
+            color: #2d3748;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            border-left: 5px solid #0284c7;
+            padding: 20px;
+            border-radius: 12px;
+            color: #0c4a6e;
+            font-size: 0.98em;
+            box-shadow: 0 5px 15px rgba(2, 132, 199, 0.15);
+            font-weight: 500;
+        }
+
+        .market-examples {
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 12px;
+            font-size: 0.95em;
+            color: #7c2d12;
+            box-shadow: 0 5px 15px rgba(217, 119, 6, 0.15);
+            border: 2px solid rgba(217, 119, 6, 0.2);
+        }
+
+        .market-examples strong {
+            color: #92400e;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+            }
+
+            .header {
+                padding: 25px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .input-section {
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            button {
+                width: 100%;
+                align-self: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Multi-Market Stock Price Predictor</h1>
+            <p>AI-powered predictions for tomorrow's closing price</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="input-section">
+            <div class="input-group" style="flex: 1; min-width: 200px;">
+                <label for="symbol">Stock Symbol</label>
+                <input 
+                    type="text" 
+                    id="symbol" 
+                    placeholder="Enter symbol (e.g., AAPL, GOOGL, RELIANCE.NS)"
+                    autocomplete="off"
+                >
+            </div>
+            <div class="input-group" style="flex: 1; min-width: 150px;">
+                <label for="days">Historical Days</label>
+                <input 
+                    type="number" 
+                    id="days" 
+                    value="60"
+                    min="5"
+                    max="365"
+                >
+            </div>
+            <button onclick="predictPrice()">Predict Price</button>
+        </div>
+
+        <div class="market-examples">
+            <strong>📍 Market Examples:</strong><br>
+            US: AAPL, GOOGL, MSFT, TSLA, AMZN<br>
+            NSE (India): RELIANCE.NS, TCS.NS, INFY.NS, WIPRO.NS
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Fetching data and analyzing...</p>
+        </div>
+
+        <div class="prediction-section" id="predictionSection">
+            <div class="prediction-cards" id="predictionCards"></div>
+            <div class="chart-section">
+                <h3>📊 Historical Price Movement</h3>
+                <canvas id="priceChart"></canvas>
+            </div>
+            <div class="info-box">
+                💡 <strong>Note:</strong> Predictions are based on historical trend analysis using machine learning. 
+                Actual market prices may vary due to market volatility and external factors. This is for educational 
+                purposes and not financial advice.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let chart = null;
+
+        document.getElementById('symbol').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') predictPrice();
+        });
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = '❌ ' + message;
+            errorEl.classList.add('show');
+            setTimeout(() => errorEl.classList.remove('show'), 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+
+        async function predictPrice() {
+            const symbol = document.getElementById('symbol').value.trim().toUpperCase();
+            const days = parseInt(document.getElementById('days').value) || 60;
+
+            if (!symbol) {
+                showError('Please enter a stock symbol');
+                return;
+            }
+
+            showLoading(true);
+            document.getElementById('error').classList.remove('show');
+
+            try {
+                // Fetch prediction
+                const predResponse = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol, days })
+                });
+
+                if (!predResponse.ok) {
+                    const errorData = await predResponse.json();
+                    throw new Error(errorData.error || 'Failed to fetch prediction');
+                }
+
+                const prediction = await predResponse.json();
+
+                // Fetch historical data
+                const histResponse = await fetch(`${API_BASE}/historical`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol, days })
+                });
+
+                let historicalData = [];
+                if (histResponse.ok) {
+                    const histData = await histResponse.json();
+                    historicalData = histData.data || [];
+                }
+
+                displayPrediction(symbol, prediction, historicalData);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function displayPrediction(symbol, prediction, historicalData) {
+            const section = document.getElementById('predictionSection');
+            const cardsContainer = document.getElementById('predictionCards');
+
+            const isPositive = prediction.change >= 0;
+            const changeIcon = isPositive ? '📈' : '📉';
+            const cardClass = isPositive ? 'positive' : 'negative';
+            const changeClass = isPositive ? 'positive' : 'negative';
+
+            cardsContainer.innerHTML = `
+                <div class="card">
+                    <h3>Current Price</h3>
+                    <div class="value">$${prediction.current_price.toFixed(2)}</div>
+                </div>
+                <div class="card ${cardClass}">
+                    <h3>Predicted Price</h3>
+                    <div class="value">$${prediction.predicted_price.toFixed(2)}</div>
+                </div>
+                <div class="card ${cardClass}">
+                    <h3>Expected Change</h3>
+                    <div class="value">${changeIcon}</div>
+                    <div class="change ${changeClass}">
+                        $${prediction.change.toFixed(2)} (${prediction.change_percent.toFixed(2)}%)
+                    </div>
+                </div>
+            `;
+
+            // Draw chart
+            drawChart(symbol, historicalData, prediction.predicted_price);
+            section.classList.add('show');
+        }
+
+        function drawChart(symbol, historicalData, predictedPrice) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            const dates = historicalData.map(d => d.Date);
+            const prices = historicalData.map(d => parseFloat(d.Close));
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: `${symbol} Historical Price`,
+                            data: prices,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Predicted Tomorrow',
+                            data: Array(dates.length - 1).fill(null).concat([predictedPrice]),
+                            borderColor: '#f39c12',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 6,
+                            pointBackgroundColor: '#f39c12',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            showLine: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { size: 12 }, padding: 15 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: 'Price ($)' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Date' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
